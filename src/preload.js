@@ -1,0 +1,1 @@
+const{contextBridge,ipcRenderer}=require("electron");contextBridge.exposeInMainWorld("buildzip",{chooseZip:()=>ipcRenderer.invoke("choose-zip"),build:(zip,target)=>ipcRenderer.invoke("build",{zip,target}),openFolder:p=>ipcRenderer.invoke("open-folder",p),onLog:cb=>ipcRenderer.on("build-log",(_,m)=>cb(m))});

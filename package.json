@@ -1,0 +1,7 @@
+{
+  "name":"buildzip","version":"1.0.0","description":"BuildZip — universal ZIP-to-application builder for Windows.",
+  "main":"src/main.js","author":"miron28022014-wq","license":"MIT","private":true,
+  "scripts":{"start":"electron .","dist":"electron-builder --win nsis portable","lint":"node --check src/main.js && node --check src/engine.js && node --check src/preload.js"},
+  "dependencies":{"adm-zip":"^0.5.16"},"devDependencies":{"electron":"^38.2.0","electron-builder":"^26.0.12"},
+  "build":{"appId":"com.buildzip.desktop","productName":"BuildZip","directories":{"output":"release"},"files":["src/**/*","package.json"],"win":{"target":[{"target":"nsis","arch":["x64"]},{"target":"portable","arch":["x64"]}],"artifactName":"BuildZip-${version}-${arch}.${ext}"},"nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true}}
+}

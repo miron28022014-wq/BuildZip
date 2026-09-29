@@ -1,0 +1,5 @@
+const {app,BrowserWindow,ipcMain,dialog,shell}=require("electron");
+const path=require("path"),fs=require("fs"),{buildFromZip}=require("./engine");
+function createWindow(){const w=new BrowserWindow({width:1440,height:920,minWidth:1100,minHeight:720,show:false,backgroundColor:"#080b12",webPreferences:{preload:path.join(__dirname,"preload.js"),contextIsolation:true,nodeIntegration:false,sandbox:true}});w.loadFile(path.join(__dirname,"index.html"));w.once("ready-to-show",()=>w.show())}
+app.whenReady().then(()=>{ipcMain.handle("choose-zip",async()=>{const r=await dialog.showOpenDialog({properties:["openFile"],filters:[{name:"ZIP project",extensions:["zip"]}]});return r.canceled?null:r.filePaths[0]});ipcMain.handle("build",async(e,a)=>{const send=m=>e.sender.send("build-log",m);try{return await buildFromZip(a.zip,a.target,send)}catch(x){send({type:"error",text:x.message});return{ok:false,error:x.message}}});ipcMain.handle("open-folder",async(_,p)=>fs.existsSync(p)?shell.openPath(p):"Folder not found");createWindow()});
+app.on("window-all-closed",()=>{if(process.platform!=="darwin")app.quit()});

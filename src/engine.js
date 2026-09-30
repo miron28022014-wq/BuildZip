@@ -1,11 +1,16 @@
 const fs=require("fs"),path=require("path"),os=require("os"),cp=require("child_process"),AdmZip=require("adm-zip");
-const TMP=path.join(os.tmpdir(),"BuildZip");\nconst MAX_ZIP_BYTES=2*1024*1024*1024;\nconst MAX_ENTRIES=50000;
+const TMP=path.join(os.tmpdir(),"BuildZip");
+const MAX_ZIP_BYTES=2*1024*1024*1024;
+const MAX_ENTRIES=50000;
 const exists=p=>{try{return fs.existsSync(p)}catch{return false}};
 const log=(send,type,text)=>send({type,text,time:new Date().toLocaleTimeString()});
 function detect(root){const h=f=>exists(path.join(root,f));if(h("android/app/build.gradle")||h("gradlew")||h("gradlew.bat")||h("settings.gradle")||h("settings.gradle.kts"))return"android";if(h("package.json")){try{const p=JSON.parse(fs.readFileSync(path.join(root,"package.json")));if(p.main||p.build||p.devDependencies?.electron||p.scripts?.electron)return"electron";if(p.scripts?.build)return"node"}catch{}}if(fs.readdirSync(root).some(x=>x.endsWith(".csproj")||x.endsWith(".sln")))return"dotnet";if(h("Cargo.toml"))return"rust";if(h("CMakeLists.txt"))return"cmake";if(h("pyproject.toml")||h("setup.py")||h("requirements.txt"))return"python";if(h("index.html"))return"web";return"unknown"}
 function run(cmd,args,cwd,send){return new Promise((resolve,reject)=>{log(send,"info","$ "+cmd+" "+args.join(" "));const p=cp.spawn(cmd,args,{cwd,windowsHide:true,shell:false});p.stdout.on("data",d=>log(send,"stdout",d.toString().trim()));p.stderr.on("data",d=>log(send,"stderr",d.toString().trim()));p.on("error",reject);p.on("close",c=>c===0?resolve():reject(new Error(cmd+" завершился с кодом "+c)))})}
-async function buildFromZip(zip,target,send){if(!zip||!exists(zip))throw new Error("ZIP-файл не найден.");\nif(fs.statSync(zip).size>MAX_ZIP_BYTES)throw new Error("ZIP-файл слишком большой (лимит 2 ГБ).");if(!zip.toLowerCase().endsWith(".zip"))throw new Error("Поддерживается ZIP-проект.");const id=Date.now().toString(36),root=path.join(TMP,id),dist=path.join(root,"dist");fs.mkdirSync(dist,{recursive:true});log(send,"info","Распаковка: "+path.basename(zip));const archive=new AdmZip(zip);
-const entries=archive.getEntries();\nif(entries.length>MAX_ENTRIES)throw new Error("В ZIP слишком много файлов.");\nfor(const entry of entries){
+async function buildFromZip(zip,target,send){if(!zip||!exists(zip))throw new Error("ZIP-файл не найден.");
+if(fs.statSync(zip).size>MAX_ZIP_BYTES)throw new Error("ZIP-файл слишком большой (лимит 2 ГБ).");if(!zip.toLowerCase().endsWith(".zip"))throw new Error("Поддерживается ZIP-проект.");const id=Date.now().toString(36),root=path.join(TMP,id),dist=path.join(root,"dist");fs.mkdirSync(dist,{recursive:true});log(send,"info","Распаковка: "+path.basename(zip));const archive=new AdmZip(zip);
+const entries=archive.getEntries();
+if(entries.length>MAX_ENTRIES)throw new Error("В ZIP слишком много файлов.");
+for(const entry of entries){
   const rel=entry.entryName.replace(/\\/g,"/");
   if(rel.startsWith("/")||rel.includes("../")||rel.includes("..\\")||/^[A-Za-z]:/.test(rel))throw new Error("Небезопасный путь в ZIP: "+entry.entryName);
 }

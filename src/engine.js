@@ -12,7 +12,8 @@ const entries=archive.getEntries();
 if(entries.length>MAX_ENTRIES)throw new Error("В ZIP слишком много файлов.");
 for(const entry of entries){
   const rel=entry.entryName.replace(/\\/g,"/");
-  if(rel.startsWith("/")||rel.includes("../")||rel.includes("..\\")||/^[A-Za-z]:/.test(rel))throw new Error("Небезопасный путь в ZIP: "+entry.entryName);
+  const parts=rel.split("/");
+  if(rel.startsWith("/")||/^[A-Za-z]:/.test(rel)||parts.includes(".."))throw new Error("Небезопасный путь в ZIP: "+entry.entryName);
 }
 archive.extractAllTo(root,true);let projectRoot=root;const ch=fs.readdirSync(root,{withFileTypes:true});if(ch.length===1&&ch[0].isDirectory())projectRoot=path.join(root,ch[0].name);const detected=detect(projectRoot);log(send,"success","Проект определён как: "+detected);if(target==="auto")target=detected;if(target==="unknown")throw new Error("Не удалось определить тип проекта.");const out=path.join(dist,target);fs.mkdirSync(out,{recursive:true});
 if(target==="android"){const gw=process.platform==="win32"?"gradlew.bat":"./gradlew";await run(gw,["assembleRelease"],projectRoot,send);let apk=null;function walk(d){for(const n of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,n.name);if(n.isDirectory())walk(p);else if(n.name.endsWith(".apk"))apk=p}}walk(projectRoot);if(!apk)throw new Error("APK не найден после Gradle build.");fs.copyFileSync(apk,path.join(out,path.basename(apk)))}
